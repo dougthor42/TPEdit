@@ -1,0 +1,27 @@
+<Flows>
+  <Flow>
+    <FlowType>FTI.Flows6.Flows</FlowType>
+    <PropertyData>
+      <Properties>
+        <Name>DeviceType</Name>
+        <Value>&lt;DeviceType&gt;Default&lt;/DeviceType&gt;</Value>
+      </Properties>
+      <Properties>
+        <Name>ExceptionHandlingMethod</Name>
+        <Value>&lt;ExceptionHandlingMethod&gt;Exceptions&lt;/ExceptionHandlingMethod&gt;</Value>
+      </Properties>
+      <Properties>
+        <Name>Name</Name>
+        <Value>&lt;string&gt;ScreeningFlow&lt;/string&gt;</Value>
+      </Properties>
+      <Properties>
+        <Name>Sites</Name>
+        <Value>&lt;Sites&gt;&lt;Values&gt;&lt;unsignedInt&gt;1&lt;/unsignedInt&gt;&lt;/Values&gt;&lt;/Sites&gt;</Value>
+      </Properties>
+      <Properties>
+        <Name>StopOnFail</Name>
+        <Value>&lt;boolean&gt;false&lt;/boolean&gt;</Value>
+      </Properties>
+    </PropertyData>
+  </Flow>
+</Flows>

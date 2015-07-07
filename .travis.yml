@@ -1,0 +1,26 @@
+language: python
+
+python:
+  - "3.4"
+
+notifications:
+  email: false
+
+install:
+  # print out our python bit-ness (32bit vs 64bit)
+  - python -c "import struct; print(struct.calcsize('P') * 8)"
+  - pip install --upgrade pip
+  - pip install coveralls
+  - pip install -r dev-requirements.txt
+#  - pip install --upgrade --pre -f "http://wxpython.org/Phoenix/snapshot-builds/" wxPython_Phoenix
+
+script:
+#  - nosetests --verbose --with-cov --cov pybank --logging-level=INFO
+  - green tpedit -vv --run-coverage
+
+after_success:
+  # Send coverage information to coveralls.io
+  - coveralls
+
+#addons:
+#  artifacts: true

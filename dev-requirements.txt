@@ -1,0 +1,11 @@
+nose
+wheel
+nose-cov
+python-termstyle
+colorama
+green
+lxml >= 3.4
+beautifulsoup4
+docopt
+coverage
+cx_freeze
