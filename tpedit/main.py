@@ -49,7 +49,7 @@ __version__ = "v0.1.0"
 
 ### Module Constants
 YELLOW = wx.Colour(255, 255, 0)
-FP = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\2.xml"
+FP = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\1.xml"
 
 
 ### Classes
@@ -170,7 +170,6 @@ def recurse(soup):
     return
 
 
-
 class MainApp(object):
     """
     """
@@ -200,7 +199,7 @@ class MainFrame(wx.Frame):
         # Create the menu bar and bind events
         self.menu_bar = wx.MenuBar()
         self._create_menus()
-#        self._bind_events()
+        self._bind_events()
 
         # Initialize default states
 #        self._set_defaults()
@@ -214,8 +213,8 @@ class MainFrame(wx.Frame):
     def _create_menus(self):
         """ Create each menu for the menu bar """
         self._create_file_menu()
-#        self._create_edit_menu()
-#        self._create_view_menu()
+        self._create_edit_menu()
+        self._create_view_menu()
 #        self._create_tools_menu()
 #        self._create_options_menu()
 #        self._create_help_menu()
@@ -246,6 +245,77 @@ class MainFrame(wx.Frame):
         self.mfile.AppendSeparator()
         self.mfile.AppendItem(self.mf_exit)
         self.menu_bar.Append(self.mfile, "&File")
+
+    def _create_edit_menu(self):
+        """
+        Creates the Edit menu
+
+        wxIDs:
+        ------
+        + 201: ???
+        + 202: ???
+
+        """
+        # Create the menu and items
+        self.medit = wx.Menu()
+        self.me_temp = wx.MenuItem(self.medit, 201, "&Temp", "TempItem")
+
+        # Add menu items to the menu
+        self.medit.AppendItem(self.me_temp)
+        self.menu_bar.Append(self.medit, "&Edit")
+
+    def _create_view_menu(self):
+        """
+        Creates the View menu.
+
+        wxIDs:
+        ------
+        + 301: ???
+        + 302: ???
+        """
+        # Create the menu and items
+        self.mview = wx.Menu()
+        self.mv_expand_all = wx.MenuItem(self.mview, 301,
+                                         "&Expand All", "Expand All")
+        self.mv_collapse_all = wx.MenuItem(self.mview, 302,
+                                           "&Collapse All", "Collapse All")
+
+        # Add menu items to the menu
+        self.mview.AppendItem(self.mv_expand_all)
+        self.mview.AppendItem(self.mv_collapse_all)
+        self.menu_bar.Append(self.mview, "&View")
+
+    def _bind_events(self):
+        """ Bind all initial events """
+        # File Menu
+#        self.Bind(wx.EVT_MENU, self._on_new, id=101)
+#        self.Bind(wx.EVT_MENU, self._on_open, id=102)
+        self.Bind(wx.EVT_MENU, self._on_quit, id=103)
+
+        # Edit Menu
+#        self.Bind(wx.EVT_MENU, self._on_edit_menu1)
+
+        # View Menu
+#        self.Bind(wx.EVT_MENU, self._nothing)
+        self.Bind(wx.EVT_MENU, self._on_expand_all, id=301)
+        self.Bind(wx.EVT_MENU, self._on_collapse_all, id=302)
+
+        # Tools Menu
+
+        # Options Menu
+
+        # Help Menu
+
+    def _on_expand_all(self, event):
+        self.panel.tree.ExpandAll(self.panel.root)
+
+    def _on_collapse_all(self, event):
+        self.panel.tree.Collapse()
+
+    def _on_quit(self, event):
+        """ Execute quit actions """
+#        logging.debug("on quit")
+        self.Close(True)
 
 
 class MainPanel(wx.Panel):
@@ -288,8 +358,7 @@ class MainPanel(wx.Panel):
         # add buncha items
         with open(FP) as openf:
             soup = BeautifulSoup(openf, 'xml')
-            self._recurse(soup, self.root)
-
+            self._recurse2(soup, self.root)
 
         # Expand some items by default
         self.tree.ExpandAll(self.root)
@@ -310,15 +379,16 @@ class MainPanel(wx.Panel):
     def _bind_events(self):
         """
         """
-        self.tree.GetMainWindow().Bind(wx.EVT_LEFT_DCLICK, self._on_dclick)
+        main_win = self.tree.GetMainWindow()
+        main_win.Bind(wx.EVT_RIGHT_DCLICK, self._on_right_dclick)
         self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, None)
 
-    def _on_dclick(self, event):
+    def _on_right_dclick(self, event):
         """
         """
         pos = event.GetPosition()
         item, flags, col = self.tree.HitTest(pos)
-        msg_text = """Double-clicking on an item will copy the value
+        msg_text = """Right Double-clicking on an item will copy the value
 too all open files:
 
 Item: '{}', Value: '{}' propagated to all open files!"""
@@ -340,7 +410,7 @@ Item: '{}', Value: '{}' propagated to all open files!"""
         Recursively traverses the XML and adds items to the GUI tree.
         """
         for child in soup.children:
-            # if we're a navString, then we're probably at an element
+            # if we're a navString, then we're at an element
             if isinstance(child, bs4.element.NavigableString):
                 # ignore newline elements
                 if child.string == "\n":
@@ -352,22 +422,84 @@ Item: '{}', Value: '{}' propagated to all open files!"""
                     dtype = new_soup.contents[0].name
                     val = new_soup.contents[0].string
                     self.tree.SetItemText(parent, new_soup.contents[0].name, 1)
-                    print(val)
+#                    print(val)
                 except IndexError:
                     val = child.string
-                self.tree.SetItemText(parent, val, 2)
+                try:
+                    self.tree.SetItemText(parent, val, 2)
+                except TypeError:
+                    pass
             # if we're a Tag, then we're probably at a tree
             elif isinstance(child, bs4.element.Tag):
-                # TODO: refactor
                 if len(child.contents) == 1:
                     if child.contents[0].string == "\n":
                         continue
+#                    self.tree.AppendItem(parent, child.contents[0])
+#                elif all(x == child.contents[0] for x in child.contents):
+#                    print("same!")
                 new_parent = self.tree.AppendItem(parent, child.name)
                 self._recurse(child, new_parent)
 
-    def parse_dtype(string):
-        """ parses a dtype from a string """
-        pass
+    def _recurse2(self, soup, parent=None):
+        """
+        """
+        skipped_items = ("FTI.Subsystems.Variables.Variables",
+                         "FTI.TesterInstruments6.TesterInstruments",
+                         "FTI.Subsystems.Coordinators.Coordinators",
+                         )
+        for child in (x for x in soup.children if x != '\n'):
+            if child.name in skipped_items:
+                continue
+
+            # if the child is "Properties" then the next two items are
+            # going to be Name and Value
+            if child.name == "Properties":
+                # find the grandchildren and set them as elements of the
+                # *grandparent*.
+                grandparent = self.tree.GetItemParent(parent)
+                grandchildren = [x for x in child.children if x != '\n']
+#                print(grandchildren['Name'])
+                name = grandchildren[0].string
+                value = grandchildren[1].string
+                key = self.tree.AppendItem(parent, name)
+                try:
+                    value = unicode(value)
+                    dtype, value = parse_dtype(value)
+                    self.tree.SetItemText(key, dtype, 1)
+                except IndexError:
+                    # the parse_dtype function was unable to get a value,
+                    # most likely because there's no dtype tag
+                    pass
+
+                # Prevent TypeError on SetItemText (None != str or unicode)
+                if value is None:
+                    value = ""
+
+                log_str = "Name: {: <15.15s}  Value: {: <15.15s}"
+#                print(log_str.format(name, value))
+                self.tree.SetItemText(key, value, 2)
+
+                # don't recurse into this tree
+                continue
+
+            # if we're at a NavigableString, then we need to add it
+            if isinstance(child, bs4.element.NavigableString):
+                self.tree.SetItemText(parent, child.string, 2)
+
+            # if the child is a tag, then we set it as the new parent
+            # and recurse
+            if isinstance(child, bs4.element.Tag):
+                new_parent = self.tree.AppendItem(parent, child.name)
+                self._recurse2(child, new_parent)
+
+
+def parse_dtype(string):
+    """ parses a dtype from a string """
+    soup = BeautifulSoup(string, 'xml')
+    dtypes = [x.name for x in soup.find_all(True, recursive=True)]
+    dtype = ".".join(dtypes)
+    value = soup.find(dtypes[-1]).string
+    return dtype, value
 
 
 def add_tp_values(tree, child, value):
@@ -391,3 +523,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+#    string = "<Double>-30</Double>"
+#    string = "<A><B><C>value</C></B></A>"
+#    parse_dtype(string)
