@@ -52,11 +52,14 @@ __version__ = "v0.1.0"
 HIGHLIGHT = wx.Colour(255, 255, 0)
 HIGHLIGHT2 = wx.Colour(255, 128, 30)
 
-FP1 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G11_B.xml"
-FP2 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G13_B.xml"
-FP3 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G14_B.xml"
-FP4 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G16_B.xml"
-FPs = (FP1, FP2, FP3, FP4)
+ROOT_PATH = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data"
+FNs = ("PT_07G11_B.xml",
+       "PT_07G13_B.xml",
+       "PT_07G14_B.xml",
+       "PT_07G16_B.xml",
+       )
+
+FPs = [os.path.join(ROOT_PATH, x) for x in FNs]
 
 
 class MainApp(object):
@@ -97,6 +100,9 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(self.menu_bar)
         self.CreateStatusBar()
 
+        self._create_panel()
+
+    def _create_panel(self):
         self.panel = MainPanel(self)
 
     def _create_menus(self):
@@ -121,16 +127,19 @@ class MainFrame(wx.Frame):
         """
         # Create the menu and items
         self.mfile = wx.Menu()
-        self.mf_new = wx.MenuItem(self.mfile, 101, "&New\tCtrl+N",
+        self.mf_new = wx.MenuItem(self.mfile, wx.ID_NEW, "&New\tCtrl+N",
                                   "Create a new FTI Test Program file")
-        self.mf_open = wx.MenuItem(self.mfile, 102, "&Open\tCtrl+O",
+        self.mf_open = wx.MenuItem(self.mfile, wx.ID_OPEN, "&Open\tCtrl+O",
                                    "Open a Test Program file")
-        self.mf_exit = wx.MenuItem(self.mfile, 103, "&Exit\tCtrl+Q",
+        self.mf_close = wx.MenuItem(self.mfile, wx.ID_CLOSE, "&Close",
+                                    "Closes all open files")
+        self.mf_exit = wx.MenuItem(self.mfile, wx.ID_EXIT, "&Exit\tCtrl+Q",
                                    "Exit the application")
 
         # Add menu items to the menu
         self.mfile.AppendItem(self.mf_new)
         self.mfile.AppendItem(self.mf_open)
+        self.mfile.AppendItem(self.mf_close)
         self.mfile.AppendSeparator()
         self.mfile.AppendItem(self.mf_exit)
         self.menu_bar.Append(self.mfile, "&File")
@@ -147,7 +156,8 @@ class MainFrame(wx.Frame):
         """
         # Create the menu and items
         self.medit = wx.Menu()
-        self.me_temp = wx.MenuItem(self.medit, 201, "&Temp", "TempItem")
+        self.me_temp = wx.MenuItem(self.medit, wx.ID_EDIT, "&Temp",
+                                   "TempItem")
 
         # Add menu items to the menu
         self.medit.AppendItem(self.me_temp)
@@ -177,17 +187,18 @@ class MainFrame(wx.Frame):
     def _bind_events(self):
         """ Bind all initial events """
         # File Menu
-#        self.Bind(wx.EVT_MENU, self._on_new, id=101)
-#        self.Bind(wx.EVT_MENU, self._on_open, id=102)
-        self.Bind(wx.EVT_MENU, self._on_quit, id=103)
+        self.Bind(wx.EVT_MENU, self._on_new, id=wx.ID_NEW)
+        self.Bind(wx.EVT_MENU, self._on_open, id=wx.ID_OPEN)
+        self.Bind(wx.EVT_MENU, self._on_close, id=wx.ID_CLOSE)
+        self.Bind(wx.EVT_MENU, self._on_exit, id=wx.ID_EXIT)
 
         # Edit Menu
 #        self.Bind(wx.EVT_MENU, self._on_edit_menu1)
 
         # View Menu
 #        self.Bind(wx.EVT_MENU, self._nothing)
-        self.Bind(wx.EVT_MENU, self._on_expand_all, id=301)
-        self.Bind(wx.EVT_MENU, self._on_collapse_all, id=302)
+        self.Bind(wx.EVT_MENU, self._on_expand_all, self.mv_expand_all)
+        self.Bind(wx.EVT_MENU, self._on_collapse_all, self.mv_collapse_all)
 
         # Tools Menu
 
@@ -195,14 +206,29 @@ class MainFrame(wx.Frame):
 
         # Help Menu
 
+    def _on_new(self, event):
+        self.panel.log.AppendText("'New' command not yet implemented.\n")
+
+    def _on_open(self, event):
+        # TODO: Fix that user needs to resize or min/max before panel shown.
+        self._create_panel()
+#        w, h = self.GetClientSize()
+#        self.SetSize((w + 1, h + 1))
+        self.Refresh()
+        self.Update()
+
+    def _on_close(self, event):
+#        self.panel.tree.DeleteAllItems()
+        self.panel.Destroy()
+
     def _on_expand_all(self, event):
         self.panel.tree.ExpandAll(self.panel.root)
 
     def _on_collapse_all(self, event):
-        self.panel.tree.Collapse()
+        collapse_all(self.panel.tree)
 
-    def _on_quit(self, event):
-        """ Execute quit actions """
+    def _on_exit(self, event):
+        """ Execute Exit actions """
 #        logging.debug("on quit")
         self.Close(True)
 
@@ -250,7 +276,7 @@ class MainPanel(wx.Panel):
             with open(fp) as openf:
                 soups.append(BeautifulSoup(openf, 'xml'))
 
-        self._recurse2(self.root, soups)
+        self._recurse(self.root, soups)
 
         # Expand some items by default
         self.tree.ExpandAll(self.root)
@@ -261,7 +287,8 @@ class MainPanel(wx.Panel):
                      )
         self.log = wx.TextCtrl(self, wx.ID_ANY, style=log_style)
 
-        self.log.SetValue("# of differences found: {}".format(self.diff_count))
+        log_txt = "# of differences found: {}\n"
+        self.log.AppendText(log_txt.format(self.diff_count))
 
         self.vbox = wx.BoxSizer(wx.VERTICAL)
         self.vbox.Add(self.tree, 4, wx.EXPAND)
@@ -299,81 +326,7 @@ Item: '{}', Value: '{}' propagated to all open files!"""
         dialog.ShowModal()
         dialog.Destroy()
 
-    def _recurse(self, parent, soup, soup2):
-        """
-        """
-        skipped_items = ("FTI.Subsystems.Variables.Variables",
-                         "FTI.TesterInstruments6.TesterInstruments",
-                         "FTI.Subsystems.Coordinators.Coordinators",
-                         )
-        for child, child2 in zip((x for x in soup.children if x != '\n'),
-                                 (x for x in soup2.children if x != '\n')):
-            if child.name in skipped_items:
-                continue
-
-            # if the child is "Properties" then the next two items are
-            # going to be Name and Value
-            if child.name == "Properties":
-                # find the grandchildren and set them as elements of the
-                # *grandparent*.
-                grandparent = self.tree.GetItemParent(parent)
-                grandchildren = [x for x in child.children if x != '\n']
-                grandchildren2 = [x for x in child2.children if x != '\n']
-#                print(grandchildren['Name'])
-                name = grandchildren[0].string
-                value = grandchildren[1].string
-                value2 = grandchildren2[1].string
-                key = self.tree.AppendItem(parent, name)
-                try:
-                    value = unicode(value)
-                    dtype, value = parse_dtype(value)
-                    value2 = unicode(value2)
-                    _, value2 = parse_dtype(value2)
-                    self.tree.SetItemText(key, dtype, 1)
-                except IndexError:
-                    # the parse_dtype function was unable to get a value,
-                    # most likely because there's no dtype tag
-                    pass
-
-                # Prevent TypeError on SetItemText (None != str or unicode)
-                if value is None:
-                    value = ""
-                if value2 is None:
-                    value2 = ""
-
-                log_str = "Name: {: <15.15s}  Value: {: <15.15s}"
-#                print(log_str.format(name, value))
-                self.tree.SetItemText(key, value, 2)
-                self.tree.SetItemText(key, value2, 3)
-                if value != value2:
-                    self.diff_count += 1
-                    self.tree.SetItemBackgroundColour(key, HIGHLIGHT)
-                    # also highlight all the parents
-                    for _par in get_parents(self.tree, key):
-                        self.tree.SetItemBackgroundColour(_par, HIGHLIGHT2)
-
-                # don't recurse into this tree
-                continue
-
-            # if we're at a NavigableString, then we need to add it
-            if isinstance(child, bs4.element.NavigableString):
-                self.tree.SetItemText(parent, child.string, 2)
-                self.tree.SetItemText(parent, child2.string, 3)
-                # TODO: remove code duplication
-                if child.string != child2.string:
-                    self.diff_count += 1
-                    self.tree.SetItemBackgroundColour(parent, HIGHLIGHT)
-                    # also highlight all the parents
-                    for _par in get_parents(self.tree, parent):
-                        self.tree.SetItemBackgroundColour(_par, HIGHLIGHT2)
-
-            # if the child is a tag, then we set it as the new parent
-            # and recurse
-            if isinstance(child, bs4.element.Tag):
-                new_parent = self.tree.AppendItem(parent, child.name)
-                self._recurse(new_parent, child, child2)
-
-    def _recurse2(self, parent, soups):
+    def _recurse(self, parent, soups):
         """
         """
         skipped_items = ("FTI.Subsystems.Variables.Variables",
@@ -452,7 +405,7 @@ Item: '{}', Value: '{}' propagated to all open files!"""
             # and recurse
             if isinstance(child, bs4.element.Tag):
                 new_parent = self.tree.AppendItem(parent, child.name)
-                self._recurse2(new_parent, childs)
+                self._recurse(new_parent, childs)
 
     def _highlight_item_and_parents(self, item):
         """ highlights an item row and parents """
@@ -460,6 +413,7 @@ Item: '{}', Value: '{}' propagated to all open files!"""
         self.tree.SetItemBackgroundColour(item, HIGHLIGHT)
         for parent in get_parents(self.tree, item):
             self.tree.SetItemBackgroundColour(parent, HIGHLIGHT2)
+
 
 def get_parents(tree, item, retval=None):
     """ Gets all the parents of a tree item """
@@ -475,6 +429,31 @@ def get_parents(tree, item, retval=None):
     return retval[:-1]
 
 
+def collapse_all(tree, item=None):
+    """ collapse all items in a tree """
+    if item is None:
+        item = tree.GetRootItem()
+
+    # get the first child, returning if no children exist.
+    try:
+        child = tree.GetFirstExpandedItem()
+    except AssertionError:
+        pass
+
+    expanded_items = [item, child]
+    while True:
+        try:
+            child = tree.GetNextExpanded(child)
+        except:
+            break
+        expanded_items.append(child)
+
+    for item in reversed(expanded_items):
+        try:
+            tree.Collapse(item)
+        except:
+            pass
+
 
 def parse_dtype(string):
     """ parses a dtype from a string """
@@ -483,19 +462,6 @@ def parse_dtype(string):
     dtype = ".".join(dtypes)
     value = soup.find(dtypes[-1]).string
     return dtype, value
-
-
-def add_tp_values(tree, child, value):
-    """ """
-    for _i in range(2, 5):
-        tree.SetItemText(child, value, _i)
-
-
-def add_attribute(tree, parent, name, databype, value):
-    """ """
-    child = tree.AppendItem(parent, name)
-    tree.SetItemText(child, databype, 1)
-    add_tp_values(tree, child, value)
 
 
 def main():
