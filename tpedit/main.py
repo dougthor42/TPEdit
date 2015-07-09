@@ -48,8 +48,11 @@ __author__ = "Douglas Thor"
 __version__ = "v0.1.0"
 
 ### Module Constants
-YELLOW = wx.Colour(255, 255, 0)
-FP = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\1.xml"
+HIGHLIGHT = wx.Colour(255, 255, 0)
+HIGHLIGHT2 = wx.Colour(255, 128, 30)
+
+FP1 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G11_B.xml"
+FP2 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G13_B.xml"
 
 
 ### Classes
@@ -324,6 +327,7 @@ class MainPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.parent = parent
+        self.diff_count = 0
 
         self._init_ui()
 
@@ -356,9 +360,11 @@ class MainPanel(wx.Panel):
         self.root = self.tree.AddRoot("root")
 
         # add buncha items
-        with open(FP) as openf:
-            soup = BeautifulSoup(openf, 'xml')
-            self._recurse2(soup, self.root)
+        with open(FP1) as openf:
+            with open(FP2) as openf2:
+                soup = BeautifulSoup(openf, 'xml')
+                soup2 = BeautifulSoup(openf2, 'xml')
+                self._recurse2(soup, soup2, self.root)
 
         # Expand some items by default
         self.tree.ExpandAll(self.root)
@@ -368,6 +374,8 @@ class MainPanel(wx.Panel):
                      | wx.TE_PROCESS_ENTER
                      )
         self.log = wx.TextCtrl(self, wx.ID_ANY, style=log_style)
+
+        self.log.SetValue("# of differences found: {}".format(self.diff_count))
 
         self.vbox = wx.BoxSizer(wx.VERTICAL)
         self.vbox.Add(self.tree, 4, wx.EXPAND)
@@ -440,14 +448,15 @@ Item: '{}', Value: '{}' propagated to all open files!"""
                 new_parent = self.tree.AppendItem(parent, child.name)
                 self._recurse(child, new_parent)
 
-    def _recurse2(self, soup, parent=None):
+    def _recurse2(self, soup, soup2, parent=None):
         """
         """
         skipped_items = ("FTI.Subsystems.Variables.Variables",
                          "FTI.TesterInstruments6.TesterInstruments",
                          "FTI.Subsystems.Coordinators.Coordinators",
                          )
-        for child in (x for x in soup.children if x != '\n'):
+        for child, child2 in zip((x for x in soup.children if x != '\n'),
+                                 (x for x in soup2.children if x != '\n')):
             if child.name in skipped_items:
                 continue
 
@@ -458,13 +467,17 @@ Item: '{}', Value: '{}' propagated to all open files!"""
                 # *grandparent*.
                 grandparent = self.tree.GetItemParent(parent)
                 grandchildren = [x for x in child.children if x != '\n']
+                grandchildren2 = [x for x in child2.children if x != '\n']
 #                print(grandchildren['Name'])
                 name = grandchildren[0].string
                 value = grandchildren[1].string
+                value2 = grandchildren2[1].string
                 key = self.tree.AppendItem(parent, name)
                 try:
                     value = unicode(value)
                     dtype, value = parse_dtype(value)
+                    value2 = unicode(value2)
+                    _, value2 = parse_dtype(value2)
                     self.tree.SetItemText(key, dtype, 1)
                 except IndexError:
                     # the parse_dtype function was unable to get a value,
@@ -474,10 +487,19 @@ Item: '{}', Value: '{}' propagated to all open files!"""
                 # Prevent TypeError on SetItemText (None != str or unicode)
                 if value is None:
                     value = ""
+                if value2 is None:
+                    value2 = ""
 
                 log_str = "Name: {: <15.15s}  Value: {: <15.15s}"
 #                print(log_str.format(name, value))
                 self.tree.SetItemText(key, value, 2)
+                self.tree.SetItemText(key, value2, 3)
+                if value != value2:
+                    self.diff_count += 1
+                    self.tree.SetItemBackgroundColour(key, HIGHLIGHT)
+                    # also highlight all the parents
+                    for _par in get_parents(self.tree, key):
+                        self.tree.SetItemBackgroundColour(_par, HIGHLIGHT2)
 
                 # don't recurse into this tree
                 continue
@@ -485,12 +507,34 @@ Item: '{}', Value: '{}' propagated to all open files!"""
             # if we're at a NavigableString, then we need to add it
             if isinstance(child, bs4.element.NavigableString):
                 self.tree.SetItemText(parent, child.string, 2)
+                self.tree.SetItemText(parent, child2.string, 3)
+                # TODO: remove code duplication
+                if child.string != child2.string:
+                    self.diff_count += 1
+                    self.tree.SetItemBackgroundColour(parent, HIGHLIGHT)
+                    # also highlight all the parents
+                    for _par in get_parents(self.tree, parent):
+                        self.tree.SetItemBackgroundColour(_par, HIGHLIGHT2)
 
             # if the child is a tag, then we set it as the new parent
             # and recurse
             if isinstance(child, bs4.element.Tag):
                 new_parent = self.tree.AppendItem(parent, child.name)
-                self._recurse2(child, new_parent)
+                self._recurse2(child, child2, new_parent)
+
+def get_parents(tree, item, retval=None):
+    """ Gets all the parents of a tree item """
+    if retval is None:
+        retval = []
+    try:
+        parent = tree.GetItemParent(item)
+        retval.append(parent)
+        get_parents(tree, parent, retval)
+    except AssertionError:
+        # we're at the top, ignore the error and return.
+        pass
+    return retval[:-1]
+
 
 
 def parse_dtype(string):
