@@ -18,6 +18,7 @@ Options:
 from __future__ import print_function, division
 from __future__ import absolute_import
 import logging
+import os.path
 
 # Third Party
 import wx
@@ -53,124 +54,9 @@ HIGHLIGHT2 = wx.Colour(255, 128, 30)
 
 FP1 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G11_B.xml"
 FP2 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G13_B.xml"
-
-
-### Classes
-
-class XmlElement(object):
-    """
-    A XML element.
-
-    For FTI files, these are of the format:
-    <Name>TestNumber</Name>
-    <Value>&lt;unsignedInt&gt;10&lt;/unsignedInt&gt;</Value>
-    <Value>&lt;boolean&gt;false&lt;/boolean&gt;</Value>
-
-    where "&lt;" means "<"
-    and   "&gt;" means ">"
-
-    It seems like "Value" tags will *sometimes* contain these type
-    specifiers while "Name" tags will never have types.
-
-    """
-    def __init__(self, name, dtype, value):
-        self._name = name
-        self._dtype = dtype  # default to enum.String?
-        self._value = value
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, val):
-        self._name = val
-
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @dtype.setter
-    def dtype(self, val):
-        self._dtype = val
-
-    @property
-    def value(self):
-        return self._value
-
-    @value.setter
-    def value(self, val):
-        self.value = val
-
-
-class ParseTP(object):
-    """
-    Parses a Test Program file.
-
-    Parameters:
-    -----------
-    fp : file path (string)
-        The absolute path of the file to parse.
-
-    Returns:
-    --------
-    None
-
-    Notes:
-    ------
-    ????
-
-    Attributes:
-    -----------
-    ????
-
-    Methods:
-    --------
-    ???
-
-    Private Attributes:
-    -------------------
-    ???
-
-    Private Methods:
-    ----------------
-    ???
-
-    """
-    def __init__(self, fp):
-        self.fp = fp
-
-        # open the file
-        with open(self.fp) as openf:
-            self.parse(openf)
-
-    def parse(self, openf):
-        """ Parses the entire file or string """
-        self.soup = BeautifulSoup(openf, "xml")
-
-        if len(self.soup.contents) == 0:
-            raise EOFError("The OFX file was empty I guess?")
-
-        recurse(self.soup)
-
-
-def recurse(soup):
-    """
-    """
-    for child in soup.children:
-        if isinstance(child, bs4.element.NavigableString):
-            if child.string == "\n":
-                continue
-            elem_name = child.string
-            print("adding value:        {}".format(elem_name))
-        elif isinstance(child, bs4.element.Tag):
-            l = len(list(child.children))
-            if l != 1:
-                print("adding section:  {}".format(child.name))
-            else:
-                print("adding element:    {}".format(child.name))
-            recurse(child)
-    return
+FP3 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G14_B.xml"
+FP4 = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data\\PT_07G16_B.xml"
+FPs = (FP1, FP2, FP3, FP4)
 
 
 class MainApp(object):
@@ -335,7 +221,6 @@ class MainPanel(wx.Panel):
         """
         """
         tree_style = (wx.TR_DEFAULT_STYLE
-#                      | wx.TR_HAS_BUTTONS
                       | wx.TR_ROW_LINES
                       | wx.TR_COLUMN_LINES
                       | wx.TR_FULL_ROW_HIGHLIGHT
@@ -347,24 +232,25 @@ class MainPanel(wx.Panel):
 
         self.tree.AddColumn("MainColumn")
         self.tree.AddColumn("DataType")
-        self.tree.AddColumn("TestProgram 1")
-        self.tree.AddColumn("TestProgram 2")
-        self.tree.AddColumn("TestProgram 3")
         self.tree.SetMainColumn(0)          # contains the tree
         self.tree.SetColumnWidth(0, 325)
-        self.tree.SetColumnWidth(1, 200)
-        self.tree.SetColumnWidth(2, 220)
-        self.tree.SetColumnWidth(3, 220)
-        self.tree.SetColumnWidth(4, 220)
+        self.tree.SetColumnWidth(1, 140)
+
+        # Add colulmns for each file
+        for _n, fp in enumerate(FPs):
+            _, fn = os.path.split(fp)
+            self.tree.AddColumn(fn)
+            self.tree.SetColumnWidth(_n + 2, 160)
 
         self.root = self.tree.AddRoot("root")
 
-        # add buncha items
-        with open(FP1) as openf:
-            with open(FP2) as openf2:
-                soup = BeautifulSoup(openf, 'xml')
-                soup2 = BeautifulSoup(openf2, 'xml')
-                self._recurse2(soup, soup2, self.root)
+        # process each file into soup.
+        soups = []
+        for fp in FPs:
+            with open(fp) as openf:
+                soups.append(BeautifulSoup(openf, 'xml'))
+
+        self._recurse2(self.root, soups)
 
         # Expand some items by default
         self.tree.ExpandAll(self.root)
@@ -413,42 +299,7 @@ Item: '{}', Value: '{}' propagated to all open files!"""
         dialog.ShowModal()
         dialog.Destroy()
 
-    def _recurse(self, soup, parent=None):
-        """
-        Recursively traverses the XML and adds items to the GUI tree.
-        """
-        for child in soup.children:
-            # if we're a navString, then we're at an element
-            if isinstance(child, bs4.element.NavigableString):
-                # ignore newline elements
-                if child.string == "\n":
-                    continue
-                # Set the item text for the column.
-                # TODO: pull the data type from child.string
-                try:
-                    new_soup = BeautifulSoup(child.string, "xml")
-                    dtype = new_soup.contents[0].name
-                    val = new_soup.contents[0].string
-                    self.tree.SetItemText(parent, new_soup.contents[0].name, 1)
-#                    print(val)
-                except IndexError:
-                    val = child.string
-                try:
-                    self.tree.SetItemText(parent, val, 2)
-                except TypeError:
-                    pass
-            # if we're a Tag, then we're probably at a tree
-            elif isinstance(child, bs4.element.Tag):
-                if len(child.contents) == 1:
-                    if child.contents[0].string == "\n":
-                        continue
-#                    self.tree.AppendItem(parent, child.contents[0])
-#                elif all(x == child.contents[0] for x in child.contents):
-#                    print("same!")
-                new_parent = self.tree.AppendItem(parent, child.name)
-                self._recurse(child, new_parent)
-
-    def _recurse2(self, soup, soup2, parent=None):
+    def _recurse(self, parent, soup, soup2):
         """
         """
         skipped_items = ("FTI.Subsystems.Variables.Variables",
@@ -520,7 +371,95 @@ Item: '{}', Value: '{}' propagated to all open files!"""
             # and recurse
             if isinstance(child, bs4.element.Tag):
                 new_parent = self.tree.AppendItem(parent, child.name)
-                self._recurse2(child, child2, new_parent)
+                self._recurse(new_parent, child, child2)
+
+    def _recurse2(self, parent, soups):
+        """
+        """
+        skipped_items = ("FTI.Subsystems.Variables.Variables",
+                         "FTI.TesterInstruments6.TesterInstruments",
+                         "FTI.Subsystems.Coordinators.Coordinators",
+                         )
+
+        all_children = ((x for x in soup.children if x != '\n')
+                        for soup in soups)
+        for childs in zip(*all_children):
+            # assume that the 1st file is the "master file" that everything
+            # compares to.
+            child = childs[0]
+
+            # Ignore some stuff that I don't care about.
+            if child.name in skipped_items:
+                continue
+
+            # if the child is "Properties" then the next two items are
+            # going to be Name and Value
+            if child.name == "Properties":
+                # find the grandchildren
+                grandchildren = ([x for x in _child.children if x != '\n']
+                                 for _child in childs)
+
+                # collect the names and values of the grandchildren
+                names = []
+                values = []
+                for grandchild in grandchildren:
+                    names.append(grandchild[0].string)
+                    values.append(grandchild[1].string)
+
+                # set the item name as the 1st item
+                key = self.tree.AppendItem(parent, names[0])
+
+                # add the units to the units column
+                dtype = None
+                try:
+                    value = unicode(values[0])
+                    dtype, _ = parse_dtype(value)
+                except IndexError:
+                    pass
+
+                if dtype is None:
+                    dtype = ""
+
+                self.tree.SetItemText(key, dtype, 1)
+
+                # add values to each column
+                for _n, value in enumerate(values):
+                    try:
+                        value = unicode(value)
+                        _, value = parse_dtype(value)
+                    except IndexError:
+                        pass
+                    if value is None:
+                        value = ""
+                    self.tree.SetItemText(key, value, _n + 2)
+
+                # If any values are different, highlight the row and parents
+                if any(values[0] != x for x in values):
+                    self._highlight_item_and_parents(key)
+
+                continue
+
+            # if we're at a NavigableString, then we need to add it
+            if isinstance(child, bs4.element.NavigableString):
+                # check for duplicates, highlight if true
+                if any(childs[0].string != x.string for x in childs):
+                    self._highlight_item_and_parents(parent)
+
+                for _n, item in enumerate(childs):
+                    self.tree.SetItemText(parent, item.string, _n + 2)
+
+            # if the child is a tag, then we set it as the new parent
+            # and recurse
+            if isinstance(child, bs4.element.Tag):
+                new_parent = self.tree.AppendItem(parent, child.name)
+                self._recurse2(new_parent, childs)
+
+    def _highlight_item_and_parents(self, item):
+        """ highlights an item row and parents """
+        self.diff_count += 1
+        self.tree.SetItemBackgroundColour(item, HIGHLIGHT)
+        for parent in get_parents(self.tree, item):
+            self.tree.SetItemBackgroundColour(parent, HIGHLIGHT2)
 
 def get_parents(tree, item, retval=None):
     """ Gets all the parents of a tree item """
