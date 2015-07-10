@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-s
 """
+TPEdit
+------
+
+TPEdit is a XML diff program specifically for the Test Program (TP) files
+created by FTI Studio by Focused Test, Inc. (FTI).
+
+
+
+
 """
 ### Imports #################################################################
 import datetime
@@ -63,16 +72,20 @@ def _setup_logging():
     References:
     -----------
     Logging different levels to different places:
-        https://aykutakin.wordpress.com/2013/08/06/logging-to-console-and-file-in-python/
+        https://aykutakin.wordpress.com/2013/08/06/
+        logging-to-console-and-file-in-python/
 
     Adding milliseconds to log string:
         http://stackoverflow.com/a/7517430/1354930
 
     TimedRotatingFileHandler:
-        https://docs.python.org/3.4/library/logging.handlers.html#logging.handlers.TimedRotatingFileHandler
+        https://docs.python.org/3.4/library/
+        logging.handlers.html#logging.handlers.TimedRotatingFileHandler
 
     TimedRotatingFileHandler:
-        http://www.blog.pythonlibrary.org/2014/02/11/python-how-to-create-rotating-logs/
+        http://www.blog.pythonlibrary.org/2014/02/11/
+        python-how-to-create-rotating-logs/
+
     """
     logfmt = ("%(asctime)s.%(msecs)03d"
               " [%(levelname)-8.8s]"
@@ -84,7 +97,7 @@ def _setup_logging():
 
     # Create the logger
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     ### Console Handler #####################################################
     handler = logging.StreamHandler()
@@ -93,33 +106,37 @@ def _setup_logging():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+    logging.info("Console logging initialized")
+
 
     ### File Handler ########################################################
     # Build the logfile path.
-    dirname = os.path.dirname(os.path.abspath(__file__))
-    rootpath = os.path.split(dirname)[0]
-    logpath = os.path.join(rootpath, "log")
-    logfile = os.path.join(logpath, "PyBank.log")
-
-    # see Note #2
-    if not os.path.isdir(logpath):
-        rootpath = os.path.split(rootpath)[0]       # up one level
-        logpath = os.path.join(rootpath, "log")
-
-    logfile = os.path.join(logpath, "PyBank.log")
-
-    rollover_time = datetime.time.min       # midnight
-    handler = TRFHandler(logfile,
-                         when="W6",         # Sunday
-                         #interval=7,       # when=Sunday -> not needed
-                         #backupCount=5,
-                         atTime=rollover_time,
-                         #delay=True,
-                         )
-    handler.setLevel(LOG_LEVEL_FILE)
-    formatter = logging.Formatter(logfmt, datefmt)
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+#    dirname = os.path.dirname(os.path.abspath(__file__))
+#    rootpath = os.path.split(dirname)[0]
+#    logpath = os.path.join(rootpath, "log")
+#    logfile = os.path.join(logpath, "TPEdit.log")
+#
+#    # see Note #2
+#    if not os.path.isdir(logpath):
+#        rootpath = os.path.split(rootpath)[0]       # up one level
+#        logpath = os.path.join(rootpath, "log")
+#
+#    logfile = os.path.join(logpath, "TPEdit.log")
+#
+#    rollover_time = datetime.time.min       # midnight
+#    handler = TRFHandler(logfile,
+#                         when="W6",         # Sunday
+#                         #interval=7,       # when=Sunday -> not needed
+#                         #backupCount=5,
+#                         atTime=rollover_time,
+#                         #delay=True,
+#                         )
+#    handler.setLevel(LOG_LEVEL_FILE)
+#    formatter = logging.Formatter(logfmt, datefmt)
+#    handler.setFormatter(formatter)
+#    logger.addHandler(handler)
+#
+#    logging.info("File logging initialized")
 
 
 ### Module Executions #######################################################

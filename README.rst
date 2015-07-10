@@ -1,8 +1,8 @@
 ======
-PyBank
+TPEdit
 ======
-Personal accounting software. Alternative to the likes of Quicken, iBank,
-Mint.com, and GnuCash.
+A Test Program (TP) Editor and Diff tool for test programs made by
+FTI Studio.
 
 
 Build Status
@@ -33,47 +33,29 @@ Contents
 
 Summary
 -------
-PyBank is personal account software similar to Quicken, iBank, and GnuCash.
-It features the ability to download transactions via OFX, parse them, and
-insert them into the local database.
+A Test Program (TP) Editor and Diff tool for test programs made by
+FTI Studio. FTI (Focused Test, Inc., http://focusedtest.com/) is a
+semiconductor ATE supplier specializing in discrete power devices.
 
 Features
 --------
 + Cross-Platform GUI via wxPython
-+ Transaction download via OFX
-+ Password Vault using the Host Environment's credential manager
-
-  + Windows: Windows Credential Vault
-  + Linux: Secret Service
-  + Max: OSX Keychain
-
-+ Lightweight storage of data via SQLite
-+ TODO: Encrypt SQLite file
-+ Categorize and label transactions
-+ Payee renaming
-+ Simple plotting features:
-
-  + Pareto Plot of spending categories
-  + Line Chart of Account value over time
-  + Predicted balances based on previous spending, accounting for planned
-    expenses
-
-+ Handle multiple accounts in a single file
++ Diff and work on any number of files at once.
 
 Notes
 -----
 None Yet
 
-.. |travis-ci| image:: https://api.travis-ci.org/dougthor42/PyBank.svg?branch=master
-  :target: https://travis-ci.org/dougthor42/PyBank
+.. |travis-ci| image:: https://api.travis-ci.org/dougthor42/TPEdit.svg?branch=master
+  :target: https://travis-ci.org/dougthor42/TPEdit
   :alt: Travis-CI (Linux, Max)
 
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/dougthor42/pybank?branch=master&svg=true
-  :target: https://ci.appveyor.com/project/dougthor42/pybank
+.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/dougthor42/tpedit?branch=master&svg=true
+  :target: https://ci.appveyor.com/project/dougthor42/tpedit/master
   :alt: AppVeyor (Windows)
 
-.. |coveralls| image:: https://coveralls.io/repos/dougthor42/PyBank/badge.svg?branch=master
-  :target: https://coveralls.io/r/dougthor42/PyBank?branch=master
+.. |coveralls| image:: https://coveralls.io/repos/dougthor42/TPEdit/badge.svg?branch=master
+  :target: https://coveralls.io/r/dougthor42/TPEdit?branch=master
   :alt: Coveralls (code coverage)
 
 .. |PyPI| image:: http://img.shields.io/pypi/v/wafer_map.svg?style=flat

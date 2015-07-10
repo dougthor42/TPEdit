@@ -110,8 +110,8 @@ after_test:
 
 artifacts:
   # Upload the wheel and EXE to AppVeyor
-#  - path: dist\PyBank-0.0.1-py3-none-any.whl
-#    name: PyBank-0.0.1-py3-none-any.whl
+#  - path: dist\TPEdit-0.0.0.1-py2-none-any.whl
+#    name: TPEdit-0.0.0.1-py2-none-any.whl
 #    type: whl
 
   - path: TPEdit.zip
