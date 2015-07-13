@@ -98,7 +98,7 @@ build: off  # Not a C# project, build stuff at the test step instead.
 before_test:
   # Things to run before testing
   # Copy over wx.pth to python dir so that wx can be called via 'import wx'
-  - cp "C:\projects\tpedit\build_reqs\wx.pth" "C:\Python27\Lib\site-packages\wx.pth"
+  - copy "C:\projects\tpedit\build_reqs\wx.pth" "C:\Python27\Lib\site-packages\wx.pth"
 
 test_script:
   # Run the project tests
