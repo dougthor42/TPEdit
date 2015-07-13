@@ -28,20 +28,24 @@ logging.disable(logging.CRITICAL)
 #                 ("log\\README.txt", "log\\README.txt"),  # (source, dest)
 #                 ]
 
-includes = ['lxml','lxml.etree', 'lxml._elementpath', 'lxml.ElementInclude']
+include_packages = [
+                    "lxml",
+                    "gzip",
+                    ]
+#include_modules = [
+#                   "lxml._elementpath",
+#                   "gzip",
+#                   ]
 build_exe_opts = {
-                  "packages": ["bs4", "lxml", ],
-                  "includes": ["bs4", "lxml", 'lxml.etree',
-                               'lxml._elementpath',
-                               'lxml.ElementInclude',
-                               ],
+                  "packages": include_packages,
+#                  "includes": include_modules,
 #                  "include_files": include_files,
                   "silent": True,
                   }
 
 base = None
-if sys.platform == 'win32':
-    base = "Win32GUI"
+#if sys.platform == 'win32':        # uncomment this to remove console window.
+#    base = "Win32GUI"
 
 exes_to_build = [Executable("tpedit\\main.py", base=base),
                  ]

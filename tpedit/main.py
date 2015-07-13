@@ -303,7 +303,7 @@ class MainFrame(wx.Frame):
 
     def _on_exit(self, event):
         """ Execute Exit actions """
-        logging.debug("Exiting app")
+        logging.info("Exiting app")
         self.Close(True)
 
     @logged
