@@ -11,13 +11,13 @@
     </Properties>
     <Properties>
       <Name>Name</Name>
-      <Value>Different Name</Value>
+      <Value>ScreeningFlow</Value>
     </Properties>
   </PropertyData>
   <PropertyData>
     <Properties>
       <Name>Voltage</Name>
-      <Value>&lt;Double&gt;6&lt;/Double&gt;</Value>
+      <Value>&lt;Double&gt;5&lt;/Double&gt;</Value>
     </Properties>
     <Properties>
       <Name>Current</Name>
