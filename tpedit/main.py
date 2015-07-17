@@ -352,6 +352,7 @@ class MainFrame(wx.Frame):
                 soups.append(BeautifulSoup(openf, 'xml'))
                 self.panel.tree.AddColumn(fn)
                 self.panel.tree.SetColumnWidth(_n + 2, 160)
+                self.panel.tree.SetColumnEditable(_n + 2)
 
         self.panel._build_element_tree_recursively(self.panel.root, soups)
 
@@ -373,6 +374,7 @@ class MainPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.parent = parent
         self.diff_count = 0
+        self.edit_col = -1
 
         self._init_ui()
 
@@ -445,7 +447,9 @@ class MainPanel(wx.Panel):
         """
         main_win = self.tree.GetMainWindow()
         main_win.Bind(wx.EVT_RIGHT_DCLICK, self._on_right_dclick)
-        self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, None)
+        self.tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self._on_activate)
+        self.tree.Bind(wx.EVT_TREE_BEGIN_LABEL_EDIT, self._on_item_edit_start)
+        self.tree.Bind(wx.EVT_TREE_END_LABEL_EDIT, self._on_item_edit_end)
 
     @logged
     def _on_right_dclick(self, event):
@@ -463,6 +467,39 @@ class MainPanel(wx.Panel):
             log_str = log_str.format(item_text, col_text)
             logging.info(log_str)
 
+    @logged
+    def _on_activate(self, event):
+        """
+        """
+        item_text = self.tree.GetItemText(event.GetItem())
+        logging.info("item activated: {}".format(item_text))
+
+    @logged
+    def _on_item_edit_start(self, event):
+        """
+        Primary purpose: record which column is being edited (self.edit_col)
+        """
+        self.edit_col = event.GetInt()
+
+        item_text = self.tree.GetItemText(event.GetItem())
+        item_value = self.tree.GetItemText(event.GetItem(), self.edit_col)
+        log_str = "Editing column {} for item `{}`"
+        logging.info(log_str.format(self.edit_col, item_text))
+        logging.info("  old value: `{}`".format(item_value))
+
+    @logged
+    def _on_item_edit_end(self, event):
+        """
+        http://docs.wxwidgets.org/trunk/classwx_tree_event.html
+        """
+        string = event.GetLabel()
+        log_str = "Column {} changed to: `{}`"
+        logging.info(log_str.format(self.edit_col, string))
+        if event.IsEditCancelled():
+            # I'm not sure when this would actually happen...
+            #   It's not happening upon pressing ESC, so perhaps it only
+            #   happens if EVT_TREE_BEGIN_LABEL_EDIT is vetoed?
+            logging.info("Column edit canceled.")
 
     def _build_element_tree_recursively(self, parent, soups):
         """

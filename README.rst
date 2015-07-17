@@ -41,7 +41,7 @@ semiconductor ATE supplier specializing in discrete power devices.
 It can compare any number of files, as long as the files all have the same
 general structure.
 
-  |example1|
+|example1|
 
 Features
 --------
@@ -67,7 +67,7 @@ I don't like.
 
 Notice how the spacing between lines is much larger:
 
-  |py3_treelistctrl|
+|py3_treelistctrl|
 
 I haven't been able to figure out how to get it to look the way I want, so
 I've kept the project on Python2.
