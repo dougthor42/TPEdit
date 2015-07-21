@@ -33,8 +33,10 @@ __short_description__ = """A Test Program editor and diff tool for Focused Test
 Inc.'s FTI Studio XML files"""
 __long_description__ = __doc__
 
-LOG_LEVEL_FILE = logging.DEBUG
-LOG_LEVEL_CONSOLE = logging.DEBUG
+LOG_LEVEL_BASE = logging.INFO
+LOG_LEVEL_FILE = LOG_LEVEL_BASE
+LOG_LEVEL_CONSOLE = LOG_LEVEL_BASE
+LOG_LEVEL_GUI = LOG_LEVEL_BASE
 
 
 def _setup_logging():
@@ -109,13 +111,14 @@ def _setup_logging():
 
     # Create the logger
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(LOG_LEVEL_BASE)
 
     ### Console Handler #####################################################
     handler = logging.StreamHandler()
     handler.setLevel(LOG_LEVEL_CONSOLE)
     formatter = logging.Formatter(logfmt, datefmt)
     handler.setFormatter(formatter)
+    handler.set_name("Console Handler")
     logger.addHandler(handler)
 
     logging.info("Console logging initialized")
@@ -156,6 +159,7 @@ def _setup_logging():
     handler.setLevel(LOG_LEVEL_FILE)
     formatter = logging.Formatter(logfmt, datefmt)
     handler.setFormatter(formatter)
+    handler.set_name("File Handler")
     logger.addHandler(handler)
 
     logging.info("File logging initialized")

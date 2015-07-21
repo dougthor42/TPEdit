@@ -22,6 +22,8 @@ import os.path
 import functools
 import abc
 import inspect
+import datetime
+import time
 
 # Third Party
 import wx
@@ -51,15 +53,9 @@ __version__ = "v0.1.0"
 ### Module Constants
 HIGHLIGHT = wx.Colour(255, 255, 0)
 HIGHLIGHT2 = wx.Colour(255, 128, 30)
+DEFAULT_LOG_LEVEL = __tpedit_init.LOG_LEVEL_BASE
 
 ROOT_PATH = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data"
-FNs = ("PT_07G11_B.xml",
-       "PT_07G13_B.xml",
-       "PT_07G14_B.xml",
-       "PT_07G16_B.xml",
-       )
-
-FPs = [os.path.join(ROOT_PATH, x) for x in FNs]
 
 
 def logged(func):
@@ -68,14 +64,20 @@ def logged(func):
     """
     # Customize these messages
     entry_msg = '+Entering  {}'
-    exit_msg = '-Exiting   {}'
+    exit_msg = '-Exiting   {}. Exec took {:.6}ms'
     logger = logging.getLogger()
 
     @functools.wraps(func)
     def wrapper(*args, **kwds):
         logger.debug(entry_msg.format(func.__name__))
+#        start = datetime.datetime.utcnow()
+        start = time.clock()
         f_result = func(*args, **kwds)
-        logger.debug(exit_msg.format(func.__name__))
+#        end = datetime.datetime.utcnow()
+        end = time.clock()
+#        elapsed = (end - start).total_seconds() * 1000
+        elapsed = (end - start) * 1000
+        logger.debug(exit_msg.format(func.__name__, elapsed))
         return f_result
     return wrapper
 
@@ -95,7 +97,7 @@ class LocalLogHandler(logging.StreamHandler):
         self.flush()
 
 
-def _init_logging(target):
+def _init_logging(target, level=DEFAULT_LOG_LEVEL):
     """
     Initialize logging to the on-screen log
     """
@@ -109,12 +111,13 @@ def _init_logging(target):
 
     logger = logging.getLogger()
     handler = LocalLogHandler(target)
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(level)
     formatter = logging.Formatter(logfmt, datefmt)
     handler.setFormatter(formatter)
+    handler.set_name("GUI Handler")
     logger.addHandler(handler)
 
-    logging.info("GUI Logging Initialized")
+    logging.info("GUI Logging Initialized, level = {}".format(level))
 
 
 class MainApp(object):
@@ -151,7 +154,7 @@ class MainFrame(wx.Frame):
         self.panel = MainPanel(self)
 
         # Start logging.
-        _init_logging(self.panel.log)
+        _init_logging(self.panel.log_panel.log)
         logging.info("Panel init complete")
 
         # Create the menu bar and bind events
@@ -160,7 +163,7 @@ class MainFrame(wx.Frame):
         self._bind_events()
 
         # Initialize default states
-#        self._set_defaults()
+        self._set_defaults()
 
         # Set the MenuBar and create a status bar
         self.SetMenuBar(self.menu_bar)
@@ -177,16 +180,44 @@ class MainFrame(wx.Frame):
 #        self._create_help_menu()
 
     @logged
+    def _set_defaults(self, default_log_level=DEFAULT_LOG_LEVEL):
+        """
+        """
+        # TODO: refactor this hack
+        try:
+            if default_log_level == logging.DEBUG:
+                logging.info("Setting log level to DEBUG.")
+                self.sm_ll_debug.Check()
+            elif default_log_level == logging.INFO:
+                logging.info("Setting log level to INFO.")
+                self.sm_ll_info_.Check()
+            elif default_log_level == logging.WARNING:
+                logging.info("Setting log level to WARNING.")
+                self.sm_ll_warn_.Check()
+            elif default_log_level == logging.ERROR:
+                logging.info("Setting log level to ERROR.")
+                self.sm_ll_error.Check()
+            elif default_log_level == logging.CRITICAL:
+                logging.info("Setting log level to CRITICAL.")
+                self.sm_ll_crit_.Check()
+            else:
+                err_txt = "Invalid default log level `{}`."
+                raise ValueError(err_txt.format(DEFAULT_LOG_LEVEL))
+        except NameError:
+            logging.warning("Default log level not found, setting to INFO.")
+            default_log_level = logging.INFO
+            self.sm_ll_info_.Check()
+        except ValueError:
+            logging.warning("Invalid default log level, setting to INFO.")
+            default_log_level = logging.INFO
+            self.sm_ll_info_.Check()
+        except Exception:
+            raise
+
+    @logged
     def _create_file_menu(self):
         """
         Creates the File menu.
-
-        wxIDs:
-        ------
-        + 101: New
-        + 102: Open
-        + 103: Exit
-
         """
         # Create the menu and items
         self.mfile = wx.Menu()
@@ -211,38 +242,70 @@ class MainFrame(wx.Frame):
     def _create_edit_menu(self):
         """
         Creates the Edit menu
-
-        wxIDs:
-        ------
-        + 201: ???
-        + 202: ???
-
         """
         # Create the menu and items
         self.medit = wx.Menu()
-        self.me_temp = wx.MenuItem(self.medit, wx.ID_EDIT, "&Temp",
+        self.me_temp = wx.MenuItem(self.medit,
+                                   wx.ID_EDIT,
+                                   "&Temp",
                                    "TempItem")
+
+        self.sm_loglevel = wx.Menu()
+        self.sm_ll_debug = wx.MenuItem(self.sm_loglevel,
+                                       wx.ID_ANY,
+                                       "&Debug",
+                                       "Sets the log level to DEBUG",
+                                       wx.ITEM_RADIO)
+        self.sm_ll_info_ = wx.MenuItem(self.sm_loglevel,
+                                       wx.ID_ANY,
+                                       "&Info",
+                                       "Sets the log level to INFO",
+                                       wx.ITEM_RADIO)
+        self.sm_ll_warn_ = wx.MenuItem(self.sm_loglevel,
+                                       wx.ID_ANY,
+                                       "&Warning",
+                                       "Sets the log level to WARNING",
+                                       wx.ITEM_RADIO)
+        self.sm_ll_error = wx.MenuItem(self.sm_loglevel,
+                                       wx.ID_ANY,
+                                       "&Error",
+                                       "Sets the log level to ERROR",
+                                       wx.ITEM_RADIO)
+        self.sm_ll_crit_ = wx.MenuItem(self.sm_loglevel,
+                                       wx.ID_ANY,
+                                       "&Critical",
+                                       "Sets the log level to CRITICAL",
+                                       wx.ITEM_RADIO)
+
+        self.sm_loglevel.AppendItem(self.sm_ll_debug)
+        self.sm_loglevel.AppendItem(self.sm_ll_info_)
+        self.sm_loglevel.AppendItem(self.sm_ll_warn_)
+        self.sm_loglevel.AppendItem(self.sm_ll_error)
+        self.sm_loglevel.AppendItem(self.sm_ll_crit_)
 
         # Add menu items to the menu
         self.medit.AppendItem(self.me_temp)
+        self.medit.AppendMenu(wx.ID_ANY,
+                              "Logging Level",
+                              self.sm_loglevel,
+                              "Change the logging level.")
         self.menu_bar.Append(self.medit, "&Edit")
 
     @logged
     def _create_view_menu(self):
         """
         Creates the View menu.
-
-        wxIDs:
-        ------
-        + 301: ???
-        + 302: ???
         """
         # Create the menu and items
         self.mview = wx.Menu()
-        self.mv_expand_all = wx.MenuItem(self.mview, 301,
-                                         "&Expand All", "Expand All")
-        self.mv_collapse_all = wx.MenuItem(self.mview, 302,
-                                           "&Collapse All", "Collapse All")
+        self.mv_expand_all = wx.MenuItem(self.mview,
+                                         wx.ID_ANY,
+                                         "&Expand All",
+                                         "Expand All")
+        self.mv_collapse_all = wx.MenuItem(self.mview,
+                                           wx.ID_ANY,
+                                           "&Collapse All",
+                                           "Collapse All")
 
         # Add menu items to the menu
         self.mview.AppendItem(self.mv_expand_all)
@@ -259,7 +322,11 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self._on_exit, id=wx.ID_EXIT)
 
         # Edit Menu
-#        self.Bind(wx.EVT_MENU, self._on_edit_menu1)
+        self.Bind(wx.EVT_MENU, self._on_loglevel_change, self.sm_ll_debug)
+        self.Bind(wx.EVT_MENU, self._on_loglevel_change, self.sm_ll_info_)
+        self.Bind(wx.EVT_MENU, self._on_loglevel_change, self.sm_ll_warn_)
+        self.Bind(wx.EVT_MENU, self._on_loglevel_change, self.sm_ll_error)
+        self.Bind(wx.EVT_MENU, self._on_loglevel_change, self.sm_ll_crit_)
 
         # View Menu
 #        self.Bind(wx.EVT_MENU, self._nothing)
@@ -273,12 +340,18 @@ class MainFrame(wx.Frame):
         # Help Menu
 
     @logged
+    def _on_loglevel_change(self, event):
+        """ Process the log level change event """
+        new_level = event.GetEventObject().GetLabelText(event.GetId()).upper()
+        logging.info("Log Level Changed to {}".format(new_level))
+        _set_log_level(new_level)
+
+    @logged
     def _on_new(self, event):
         logging.warn("Command 'New' not yet implemented.")
 
     @logged
     def _on_open(self, event):
-#        logging.warn("Command 'Open' not yet implemented.")
         self.close_files()
         self._open_file_dialog()
 
@@ -333,13 +406,18 @@ class MainFrame(wx.Frame):
 
         self.open_files(paths)
 
+
+
     @logged
     def open_files(self, paths):
         """ """
+        # Reset the diff counter - don't want to double-count
+        self.panel.edit_panel.diff_count = 0
+
         # make sure a root exists:
 #        print(self.panel.tree.GetRootItem())
         try:
-            self.panel.root = self.panel.tree.AddRoot("root")
+            self.panel.edit_panel.root = self.panel.edit_panel.tree.AddRoot("root")
         except AssertionError:
             # root already exists
             pass
@@ -350,75 +428,66 @@ class MainFrame(wx.Frame):
                 _, fn = os.path.split(fp)
                 logging.info("Processing `{}`".format(fn))
                 soups.append(BeautifulSoup(openf, 'xml'))
-                self.panel.tree.AddColumn(fn)
-                self.panel.tree.SetColumnWidth(_n + 2, 160)
-                self.panel.tree.SetColumnEditable(_n + 2)
+                self.panel.edit_panel.tree.AddColumn(fn)
+                self.panel.edit_panel.tree.SetColumnWidth(_n + 2, 160)
+                self.panel.edit_panel.tree.SetColumnEditable(_n + 2)
 
-        self.panel._build_element_tree_recursively(self.panel.root, soups)
+        # TODO: get rid of the self.panel.edit_panel.tree.blah long accessor
+        self.panel.edit_panel._build_element_tree_recursively(self.panel.edit_panel.root, soups)
 
-        self.panel.tree.ExpandAll(self.panel.root)
+        self.panel.edit_panel.tree.ExpandAll(self.panel.edit_panel.root)
+
+        logging.info("Total {} differences found.".format(self.panel.edit_panel.diff_count))
 
     @logged
     def close_files(self):
         logging.info("Closing all files.")
 
-        self.panel.tree.DeleteAllItems()
-        for col in reversed(range(2, self.panel.tree.GetColumnCount())):
-            self.panel.tree.RemoveColumn(col)
+        self.panel.edit_panel.tree.DeleteAllItems()
+        for col in reversed(range(2, self.panel.edit_panel.tree.GetColumnCount())):
+            self.panel.edit_panel.tree.RemoveColumn(col)
 
 
 class MainPanel(wx.Panel):
     """
+    Root Panel of the UI.
+
+    Contains the EditPanel, where files are compared and edited, and the
+    LogPanel.
     """
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.parent = parent
-        self.diff_count = 0
-        self.edit_col = -1
 
         self._init_ui()
 
     def _init_ui(self):
-        """
-        """
-        tree_style = (wx.TR_DEFAULT_STYLE
-                      | wx.TR_ROW_LINES
-                      | wx.TR_COLUMN_LINES
-                      | wx.TR_FULL_ROW_HIGHLIGHT
-                      )
-        self.tree = wxdv.TreeListCtrl(self,
-                                      wx.ID_ANY,
-                                      style=tree_style,
-                                      )
 
-        self.tree.AddColumn("Item")
-        self.tree.AddColumn("DataType")
-        self.tree.SetMainColumn(0)          # contains the tree
-        self.tree.SetColumnWidth(0, 325)
-        self.tree.SetColumnWidth(1, 140)
+        self.edit_panel = EditPanel(self)
+        self.log_panel = LogPanel(self)
 
-        # Add colulmns for each file
-#        for _n, fp in enumerate(FPs):
-#            _, fn = os.path.split(fp)
-#            self.tree.AddColumn(fn)
-#            self.tree.SetColumnWidth(_n + 2, 160)
+        self.vbox = wx.BoxSizer(wx.VERTICAL)
+        self.vbox.Add(self.edit_panel, 4, wx.EXPAND)
+        self.vbox.Add(self.log_panel, 1, wx.EXPAND)
+        self.SetSizer(self.vbox)
 
-        self.root = self.tree.AddRoot("root")
 
-        # process each file into soup.
-#        soups = []
-#        for fp in FPs:
-#            with open(fp) as openf:
-#                soups.append(BeautifulSoup(openf, 'xml'))
-#
-#        self._build_element_tree_recursively(self.root, soups)
+class LogPanel(wx.Panel):
+    """
+    Logging window.
 
-        # Expand some items by default
-        self.tree.ExpandAll(self.root)
+    Contains a read-only TextCtrl that displays logging messages.
+    """
+    def __init__(self, parent):
+        """ Init the parent class and instance variables """
+        wx.Panel.__init__(self, parent)
+        self.parent = parent
 
-        # Add a logging window
+        self._init_ui()
+
+    def _init_ui(self):
+        """ Init the UI elements """
         log_style = (wx.TE_MULTILINE
-#                     | wx.TE_PROCESS_ENTER
                      | wx.TE_READONLY
                      | wx.HSCROLL
                      )
@@ -432,18 +501,63 @@ class MainPanel(wx.Panel):
                                  )
         self.log.SetFont(monospace_font)
 
-        log_txt = "# of differences found: {}\n"
-        self.log.AppendText(log_txt.format(self.diff_count))
+        self.hbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.hbox.Add(self.log, 1, wx.EXPAND)
+        self.SetSizer(self.hbox)
+
+
+class EditPanel(wx.Panel):
+    """
+    Primary Edit panel.
+
+    Contains all of the logic for displaying and editing the XML files.
+    """
+    def __init__(self, parent):
+        """ Init the parent class and instance variables """
+        wx.Panel.__init__(self, parent)
+        self.parent = parent
+        self.diff_count = 0
+        self.edit_col = -1
+
+        self._init_ui()
+
+        # must bind events *after* init because they rely on those ui elements
+        self._bind_events()
+
+    def _init_ui(self):
+        """
+        Init the UI elements
+        """
+        # A TreeListCtrl contains all of the XML
+        tree_style = (wx.TR_DEFAULT_STYLE
+                      | wx.TR_ROW_LINES
+                      | wx.TR_COLUMN_LINES
+                      | wx.TR_FULL_ROW_HIGHLIGHT
+                      )
+        self.tree = wxdv.TreeListCtrl(self,
+                                      wx.ID_ANY,
+                                      style=tree_style,
+                                      )
+
+        # Add the columns that always exist.
+        self.tree.AddColumn("Item")
+        self.tree.AddColumn("DataType")
+        self.tree.SetMainColumn(0)          # contains the tree
+        self.tree.SetColumnWidth(0, 325)
+        self.tree.SetColumnWidth(1, 140)
+
+        self.root = self.tree.AddRoot("root")
+
+        # Expand some items by default
+        self.tree.ExpandAll(self.root)
 
         self.vbox = wx.BoxSizer(wx.VERTICAL)
-        self.vbox.Add(self.tree, 4, wx.EXPAND)
-        self.vbox.Add(self.log, 1, wx.EXPAND)
+        self.vbox.Add(self.tree, 1, wx.EXPAND)
         self.SetSizer(self.vbox)
-
-        self._bind_events()
 
     def _bind_events(self):
         """
+        Bind various events for the Edit Panel
         """
         main_win = self.tree.GetMainWindow()
         main_win.Bind(wx.EVT_RIGHT_DCLICK, self._on_right_dclick)
@@ -454,6 +568,7 @@ class MainPanel(wx.Panel):
     @logged
     def _on_right_dclick(self, event):
         """
+        Placeholder for value propagation.
         """
         logging.info("Double-right click detected")
         pos = event.GetPosition()
@@ -470,6 +585,7 @@ class MainPanel(wx.Panel):
     @logged
     def _on_activate(self, event):
         """
+        Placeholder - logging only.
         """
         item_text = self.tree.GetItemText(event.GetItem())
         logging.info("item activated: {}".format(item_text))
@@ -501,6 +617,7 @@ class MainPanel(wx.Panel):
             #   happens if EVT_TREE_BEGIN_LABEL_EDIT is vetoed?
             logging.info("Column edit canceled.")
 
+    # TODO: move outside of the class?
     def _build_element_tree_recursively(self, parent, soups):
         """
         """
@@ -588,6 +705,52 @@ class MainPanel(wx.Panel):
         self.tree.SetItemBackgroundColour(item, HIGHLIGHT)
         for parent in get_parents(self.tree, item):
             self.tree.SetItemBackgroundColour(parent, HIGHLIGHT2)
+
+
+@logged
+def _set_log_level(level_str):
+    """
+    Sets the global logging level
+
+    Parmeters:
+    ----------
+    level_str : string
+        String representation of logging.level. Accpeted values are::
+
+            DEBUG, INFO, WARN, WARNING, ERROR, CRITICAL
+
+    Returns:
+    --------
+    None
+
+    """
+    # TODO: figure out a stdlib way to do this:
+    levels = {50: "CRITICAL",
+              40: "ERROR",
+              30: "WARNING",
+              20: "INFO",
+              10: "DEBUG",
+              }
+
+    if level_str not in levels.values():
+        raise ValueError("Invalid log level `{}`".format(level_str))
+
+    # Get the Logger and the previous logging level
+    logger = logging.getLogger()
+    prev_level = logger.level
+    new_level = getattr(logging, level_str)     # Get numeric value
+
+    # Always record log level changes
+    log_str = "Changing logging level from {} to {}."
+    logging.log(99, log_str.format(levels[prev_level], levels[new_level]))
+
+    # Set the logger and handler levels
+    logger.setLevel(new_level)
+    log_str = "Logging Handler `{}` set to {}."
+    for handler in logger.handlers:
+        handler.setLevel(new_level)
+        logging.debug(log_str.format(handler.get_name(), level_str))
+#    logging.info("Global Log level set to {}".format(level_str))
 
 
 @logged
