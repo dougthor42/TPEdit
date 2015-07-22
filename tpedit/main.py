@@ -53,7 +53,7 @@ __version__ = "v0.1.0"
 ### Module Constants
 HIGHLIGHT = wx.Colour(255, 255, 0)
 HIGHLIGHT2 = wx.Colour(255, 128, 30)
-DEFAULT_LOG_LEVEL = __tpedit_init.LOG_LEVEL_BASE
+DEFAULT_LOG_LEVEL = logging.INFO
 
 ROOT_PATH = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data"
 
