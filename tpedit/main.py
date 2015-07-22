@@ -71,10 +71,10 @@ def logged(func):
     def wrapper(*args, **kwds):
         logger.debug(entry_msg.format(func.__name__))
 #        start = datetime.datetime.utcnow()
-        start = time.clock()
+        start = time.time()
         f_result = func(*args, **kwds)
 #        end = datetime.datetime.utcnow()
-        end = time.clock()
+        end = time.time()
 #        elapsed = (end - start).total_seconds() * 1000
         elapsed = (end - start) * 1000
         logger.debug(exit_msg.format(func.__name__, elapsed))
