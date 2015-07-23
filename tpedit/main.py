@@ -55,7 +55,7 @@ HIGHLIGHT = wx.Colour(255, 255, 0)
 HIGHLIGHT2 = wx.Colour(255, 128, 30)
 DEFAULT_LOG_LEVEL = logging.INFO
 
-ROOT_PATH = "C:\\WinPython27\\projects\\github\\TPEdit\\tpedit\\tests\\data"
+ROOT_PATH = os.path.join(os.path.split(__file__)[0], "tests", "data")
 
 
 def logged(func):
@@ -143,7 +143,9 @@ class MainFrame(wx.Frame):
                           size=size,
                           )
         self._init_ui()
-        logging.info("Frame init complete")
+
+        log_str = "{} init complete"
+        logging.info(log_str.format(type(self).__name__))
 
     @logged
     def _init_ui(self):
@@ -154,7 +156,6 @@ class MainFrame(wx.Frame):
 
         # Start logging.
         _init_logging(self.panel.log_panel.log)
-        logging.info("Panel init complete")
 
         # Create the menu bar and bind events
         self.menu_bar = wx.MenuBar()
@@ -167,6 +168,9 @@ class MainFrame(wx.Frame):
         # Set the MenuBar and create a status bar
         self.SetMenuBar(self.menu_bar)
         self.CreateStatusBar()
+
+        _fns = ("1.xml", "2.xml", "3.xml")
+        self.open_files((os.path.join(ROOT_PATH, _fn) for _fn in _fns))
 
     @logged
     def _create_menus(self):
@@ -366,12 +370,12 @@ class MainFrame(wx.Frame):
     @logged
     def _on_expand_all(self, event):
         logging.info("Expanding all tree items.")
-        self.panel.tree.ExpandAll(self.panel.root)
+        self.panel.edit_panel.tree.ExpandAll(self.panel.edit_panel.root)
 
     @logged
     def _on_collapse_all(self, event):
         logging.info("Collapsing all tree items.")
-        collapse_all(self.panel.tree)
+        collapse_all(self.panel.edit_panel.tree)
 
     def _on_exit(self, event):
         """ Execute Exit actions """
@@ -405,21 +409,22 @@ class MainFrame(wx.Frame):
 
         self.open_files(paths)
 
-
-
     @logged
     def open_files(self, paths):
         """ """
+        # set some shorter names...
+        edit_panel = self.panel.edit_panel
+
         # Reset the diff counter - don't want to double-count
-        self.panel.edit_panel.diff_count = 0
+        edit_panel.diff_count = 0
 
         # make sure a root exists:
-#        print(self.panel.tree.GetRootItem())
         try:
-            self.panel.edit_panel.root = self.panel.edit_panel.tree.AddRoot("root")
+            edit_panel.root = edit_panel.tree.AddRoot("root")
         except AssertionError:
             # root already exists
             pass
+
         # process each file into soup.
         soups = []
         for _n, fp in enumerate(paths):
@@ -427,24 +432,28 @@ class MainFrame(wx.Frame):
                 _, fn = os.path.split(fp)
                 logging.info("Processing `{}`".format(fn))
                 soups.append(BeautifulSoup(openf, 'xml'))
-                self.panel.edit_panel.tree.AddColumn(fn)
-                self.panel.edit_panel.tree.SetColumnWidth(_n + 2, 160)
-                self.panel.edit_panel.tree.SetColumnEditable(_n + 2)
+                edit_panel.tree.AddColumn(fn)
+                edit_panel.tree.SetColumnWidth(_n + 2, 160)
+                edit_panel.tree.SetColumnEditable(_n + 2)
 
-        # TODO: get rid of the self.panel.edit_panel.tree.blah long accessor
-        self.panel.edit_panel._build_element_tree_recursively(self.panel.edit_panel.root, soups)
+        edit_panel._build_element_tree_recursively(edit_panel.root, soups)
 
-        self.panel.edit_panel.tree.ExpandAll(self.panel.edit_panel.root)
+        edit_panel.tree.ExpandAll(edit_panel.root)
 
-        logging.info("Total {} differences found.".format(self.panel.edit_panel.diff_count))
+        log_str = "Total {} differences found."
+        logging.info(log_str.format(edit_panel.diff_count))
+
+        self.panel.status_panel.update_diff_count(edit_panel.diff_count)
 
     @logged
     def close_files(self):
+        """ """
         logging.info("Closing all files.")
+        tree = self.panel.edit_panel.tree
 
-        self.panel.edit_panel.tree.DeleteAllItems()
-        for col in reversed(range(2, self.panel.edit_panel.tree.GetColumnCount())):
-            self.panel.edit_panel.tree.RemoveColumn(col)
+        tree.DeleteAllItems()
+        for col in reversed(range(2, tree.GetColumnCount())):
+            tree.RemoveColumn(col)
 
 
 class MainPanel(wx.Panel):
@@ -460,15 +469,61 @@ class MainPanel(wx.Panel):
 
         self._init_ui()
 
+        log_str = "{} init complete"
+        logging.info(log_str.format(type(self).__name__))
+
     def _init_ui(self):
 
         self.edit_panel = EditPanel(self)
         self.log_panel = LogPanel(self)
 
+        self.status_panel = StatusPanel(self)
+
+        self.hbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.hbox.Add(self.status_panel, 0, wx.EXPAND)
+        self.hbox.Add(self.log_panel, 1, wx.EXPAND)
+
         self.vbox = wx.BoxSizer(wx.VERTICAL)
         self.vbox.Add(self.edit_panel, 4, wx.EXPAND)
-        self.vbox.Add(self.log_panel, 1, wx.EXPAND)
+        self.vbox.Add(self.hbox, 1, wx.EXPAND)
         self.SetSizer(self.vbox)
+
+
+class StatusPanel(wx.Panel):
+    """
+    """
+    @logged
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.parent = parent
+        self.diff_count = 0
+        self.count_str = "{} differences found."
+
+        self._init_ui()
+
+        log_str = "{} init complete"
+        logging.info(log_str.format(type(self).__name__))
+
+    @logged
+    def _init_ui(self):
+        self.status_box = wx.StaticBox(self, wx.ID_ANY, "Status",
+                                       size=(200, -1),
+                                       )
+
+        initial_text = "No files open."
+        self.diff_count_display = wx.StaticText(self, wx.ID_ANY,
+                                                initial_text,
+                                                )
+
+        vbox = wx.StaticBoxSizer(self.status_box, wx.VERTICAL)
+        vbox.Add(self.diff_count_display, 1, wx.EXPAND)
+        self.SetSizer(vbox)
+
+    @logged
+    def update_diff_count(self, value):
+        """ """
+        self.diff_count = value
+        self.diff_count_display.SetLabel(self.count_str.format(value))
 
 
 class LogPanel(wx.Panel):
@@ -523,6 +578,9 @@ class EditPanel(wx.Panel):
         # must bind events *after* init because they rely on those ui elements
         self._bind_events()
 
+        log_str = "{} init complete"
+        logging.info(log_str.format(type(self).__name__))
+
     def _init_ui(self):
         """
         Init the UI elements
@@ -554,6 +612,7 @@ class EditPanel(wx.Panel):
         self.vbox.Add(self.tree, 1, wx.EXPAND)
         self.SetSizer(self.vbox)
 
+    @logged
     def _bind_events(self):
         """
         Bind various events for the Edit Panel
@@ -617,6 +676,7 @@ class EditPanel(wx.Panel):
             logging.info("Column edit canceled.")
 
     # TODO: move outside of the class?
+    @logged
     def _build_element_tree_recursively(self, parent, soups):
         """
         """
@@ -698,6 +758,7 @@ class EditPanel(wx.Panel):
                 new_parent = self.tree.AppendItem(parent, child.name)
                 self._build_element_tree_recursively(new_parent, childs)
 
+    @logged
     def _highlight_item_and_parents(self, item):
         """ highlights an item row and parents """
         self.diff_count += 1
