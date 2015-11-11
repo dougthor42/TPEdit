@@ -26,12 +26,13 @@ import logging
 from logging.handlers import TimedRotatingFileHandler as TRFHandler
 
 ### Constants ###############################################################
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __project_url__ = "https://github.com/dougthor42/TPEdit"
 __project_name__ = "TPEdit"
 __short_description__ = """A Test Program editor and diff tool for Focused Test
 Inc.'s FTI Studio XML files"""
 __long_description__ = __doc__
+__released__ = "2015-11-11"
 
 LOG_LEVEL_BASE = logging.INFO
 LOG_LEVEL_FILE = LOG_LEVEL_BASE

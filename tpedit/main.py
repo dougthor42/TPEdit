@@ -35,27 +35,40 @@ from bs4 import BeautifulSoup
 # Package / Application
 try:
     # Imports used for unittests
-    from . import __init__ as __tpedit_init
+    from . import (__project_name__,
+                   __version__,
+                   __released__,
+                   )
     logging.debug("Imports for UnitTests")
 except (SystemError, ValueError):
     try:
         # Imports used by Spyder
-        import __init__ as __tpedit_init
+#        import blah
+        from __init__ import (__project_name__,
+                              __version__,
+                              __released__,
+                              )
         logging.debug("Imports for Spyder IDE")
     except ImportError:
          # Imports used by cx_freeze
-        from tpedit import __init__ as __tpedit_init
+#        from tpedit import blah
+        from tpedit import (__project_name__,
+                            __version__,
+                            __released__,
+                            )
         logging.debug("imports for Executable")
-
-__author__ = "Douglas Thor"
-__version__ = "v0.1.0"
 
 ### Module Constants
 HIGHLIGHT = wx.Colour(255, 255, 0)
 HIGHLIGHT2 = wx.Colour(255, 128, 30)
 DEFAULT_LOG_LEVEL = logging.INFO
 
-ROOT_PATH = os.path.join(os.path.split(__file__)[0], "tests", "data")
+ROOT_PATH = os.path.join(os.getcwd(), "tests", "data")
+
+TITLE_TEXT = "{} v{}   Released {}".format(__project_name__,
+                                           __version__,
+                                           __released__,
+                                           )
 
 
 def logged(func):
@@ -125,7 +138,7 @@ class MainApp(object):
     def __init__(self):
         self.app = wx.App()
 
-        self.frame = MainFrame("TPEdit", (1200, 650))
+        self.frame = MainFrame(TITLE_TEXT, (1200, 650))
 
         self.frame.Show()
         logging.info("App init complete")
@@ -170,7 +183,9 @@ class MainFrame(wx.Frame):
         self.CreateStatusBar()
 
         _fns = ("1.xml", "2.xml", "3.xml")
-        self.open_files((os.path.join(ROOT_PATH, _fn) for _fn in _fns))
+
+        # Uncomment this to auto-load some temp files
+#        self.open_files((os.path.join(ROOT_PATH, _fn) for _fn in _fns))
 
     @logged
     def _create_menus(self):
