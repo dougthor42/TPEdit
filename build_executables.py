@@ -81,7 +81,7 @@ base = None
 
 exe1 = Executable(file_to_build,
                   base=base,
-                  targetName="TPedit.exe",
+                  targetName="TPEdit.exe",
                   )
 
 # List of which executables to build
