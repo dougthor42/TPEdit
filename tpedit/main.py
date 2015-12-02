@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-@name:          new_program.py
-@vers:          0.1.0
-@author:        dthor
 @created:       Thu Jul 02 10:56:57 2015
-@descr:         A new file
 
 Usage:
-    new_program.py
+    main.py
 
 Options:
     -h --help           # Show this screen.
@@ -325,9 +321,15 @@ class MainFrame(wx.Frame):
                                            "&Collapse All",
                                            "Collapse All")
 
+        self.mv_expand_diffs = wx.MenuItem(self.mview,
+                                           wx.ID_ANY,
+                                           "Expand &Diffs",
+                                           "Expand diffs")
+
         # Add menu items to the menu
         self.mview.AppendItem(self.mv_expand_all)
         self.mview.AppendItem(self.mv_collapse_all)
+        self.mview.AppendItem(self.mv_expand_diffs)
         self.menu_bar.Append(self.mview, "&View")
 
     @logged
@@ -350,6 +352,7 @@ class MainFrame(wx.Frame):
 #        self.Bind(wx.EVT_MENU, self._nothing)
         self.Bind(wx.EVT_MENU, self._on_expand_all, self.mv_expand_all)
         self.Bind(wx.EVT_MENU, self._on_collapse_all, self.mv_collapse_all)
+        self.Bind(wx.EVT_MENU, self._on_expand_diffs, self.mv_expand_diffs)
 
         # Tools Menu
 
@@ -391,6 +394,11 @@ class MainFrame(wx.Frame):
     def _on_collapse_all(self, event):
         logging.info("Collapsing all tree items.")
         collapse_all(self.panel.edit_panel.tree)
+
+    @logged
+    def _on_expand_diffs(self, event):
+        logging.info("Expanding differences.")
+        expand_diffs(self.panel.edit_panel.tree)
 
     def _on_exit(self, event):
         """ Execute Exit actions """
@@ -651,7 +659,7 @@ class EditPanel(wx.Panel):
         if item:
             item_text = self.tree.GetItemText(item)
             col_text = self.tree.GetItemText(item, col)
-            log_str = "Item `{}: {}` propagated to all open files."
+            log_str = "EXAMPLE: Item `{}: {}` propagated to all open files."
             log_str = log_str.format(item_text, col_text)
             logging.info(log_str)
 
@@ -902,6 +910,53 @@ def collapse_all(tree):
             tree.Collapse(item)
         except:
             pass
+
+
+@logged
+def expand_diffs(tree, item=None):
+    """
+    Expand only the items that are different and their parents
+    """
+    if item is None:
+        collapse_all(tree)
+        item = tree.GetRootItem()
+        bg = tree.GetItemBackgroundColour(item)
+        if bg == HIGHLIGHT2:
+            text = tree.GetItemText(item)
+            logging.debug("Expanding `{}`".format(text))
+            tree.Expand(item)
+        else:
+            return
+
+    # get the first child, returning if no children exist.
+    try:
+        child = tree.GetFirstChild(item)[0]
+        text = tree.GetItemText(child)
+    except AssertionError:
+#        raise AssertionError("Root item has no children")
+        return
+
+    children = [child, ]
+    while True:
+        try:
+            child = tree.GetNextSibling(child)
+            text = tree.GetItemText(child)
+            children.append(child)
+        except:
+            break
+
+    for i in children:
+#        logging.info("checking `{}`".format(tree.GetItemText(i)))
+        try:
+            bg = tree.GetItemBackgroundColour(i)
+        except TypeError:
+            continue
+
+        if bg == HIGHLIGHT2:
+            text = tree.GetItemText(i)
+            logging.debug("Expanding `{}`".format(text))
+            tree.Expand(i)
+            expand_diffs(tree, i)
 
 
 @logged
