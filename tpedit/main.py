@@ -893,7 +893,7 @@ def collapse_all(tree):
     try:
         child = tree.GetFirstExpandedItem()
     except AssertionError:
-        raise AssertionError("Root item has no children")
+#        raise AssertionError("Root item has no children")
         return
 
     expanded_items = [item, child]
