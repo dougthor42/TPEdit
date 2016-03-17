@@ -1,0 +1,54 @@
+stages:
+  - init
+  - test
+  - tag_deploy
+  - cleanup
+
+variables:
+  VENV_ROOT: C:\temp\builds
+
+# Set environment vars
+before_script:
+  - call C:\WinPython27\scripts\env.bat
+  - python -c "import sys;print(sys.version)"
+
+pip-install:
+  stage: init
+  when: always
+  script:
+    - pip install virtualenv
+    - echo Creating venv at `%VENV_ROOT%\%CI_PROJECT_ID%__%CI_BUILD_REF_NAME%`
+    - python -m virtualenv --clear %VENV_ROOT%\%CI_PROJECT_ID%__%CI_BUILD_REF_NAME%
+    - call %VENV_ROOT%\%CI_PROJECT_ID%__%CI_BUILD_REF_NAME%\Scripts\activate.bat
+    # Can't upgrade pip in place.
+    # See https://github.com/pypa/pip/issues/1299#issuecomment-188198496
+    - python -m pip install --upgrade pip
+    - pip install -r dev-requirements.txt
+    - pip install build-reqs/wxPython-3.0.2.0-cp27-none-win32.whl
+
+tests:
+  stage: test
+  when: on_success
+  script:
+    - call %VENV_ROOT%\%CI_PROJECT_ID%__%CI_BUILD_REF_NAME%\Scripts\activate.bat
+    - python -m green -vvv -s 1 tpedit
+
+tag_bundle:
+  stage: tag_deploy
+  when: on_success
+  only:
+    - tags
+  script:
+    - call %VENV_ROOT%\%CI_PROJECT_ID%__%CI_BUILD_REF_NAME%\Scripts\activate.bat
+    - python build_exe.py build
+    - python setup.py sdist bdist_wheel
+  artifacts:
+    paths:
+      - build/exe.win32-2.7/
+      - dist/*.whl
+
+clean-up:
+  stage: cleanup
+  when: always
+  script:
+    - rd /S /Q %VENV_ROOT%\%CI_PROJECT_ID%__%CI_BUILD_REF_NAME%

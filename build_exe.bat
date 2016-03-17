@@ -1,5 +1,5 @@
 call C:\WinPython27\Scripts\env.bat
-cd C:\WinPython27\projects\github\TPEdit
+cd C:\gitlab\dthor\TPEdit
 echo ----- Deleting previous build -----
 RMDIR /S /Q .\build\exe.win32-2.7
 echo ----- Running build script -----
